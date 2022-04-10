@@ -5,11 +5,22 @@ variables:
 - group: ansible
 
 stages:
+
+
 - stage: CI
   pool: Default
   jobs:
   - job: publish_artifact
     steps:
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Pipeline.Workspace)'
+        artifactType: 'pipeline'
+        artifactName: 'drop'
+    
+    - download: current
+  artifact: drop
+   
     - publish: $(Build.ArtifactStagingDirectory)
       displayName: publish artifact
       artifact: WebApp
