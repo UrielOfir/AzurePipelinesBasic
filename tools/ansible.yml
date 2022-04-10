@@ -1,0 +1,64 @@
+parameters:
+- name: pghost
+- name: pg_username
+- name: pg_password
+- name: LB_ip
+- name: okta_url
+- name: okta_client_id
+- name: okta_client_secret
+- name: servers_username
+- name: servers_ssh_pass
+- name: hosts
+  type: object
+
+steps:
+- download: current
+  artifact: WebApp
+
+- script: |
+    if ! command -v ansible
+    then
+      sudo apt update;
+      sudo apt install software-properties-common --yes;
+      sudo add-apt-repository --yes --update ppa:ansible/ansible;
+      sudo apt install ansible --yes;
+    fi
+  displayName: install ansible if needed
+
+- script: |
+    if [ ! -d "/home/ansible/ansible" ]; then
+        cd ~ ; git clone https://github.com/UrielOfir/ansible
+    else
+    cd ~/ansible; git pull
+    fi
+  displayName: clone ansible or pull
+
+
+- ${{ each host in parameters.hosts }}:
+    - script: |
+        echo ${{host}} host=\"${{host}}\" >> ~/ansible/inventory
+      displayName: add inventory
+
+- script: |
+    cd ~/ansible/
+    echo "
+    # the host variable is in the inventory file
+    pghost: \"${{parameters.pghost}}\"
+    pg_username: \"${{parameters.pg_username}}\"
+    pg_password: \"${{parameters.pg_password}}\"
+    LB_ip: \"${{parameters.LB_ip}}\"
+    okta_url: \"${{parameters.okta_url}}\"
+    okta_client_id: \"${{parameters.okta_client_id}}\"
+    okta_client_secret: \"${{parameters.okta_client_secret}}\"
+    ansible_connection: \"ssh\"
+    ansible_port: \"22\"
+    ansible_user: \"${{parameters.servers_username}}\" 
+    ansible_ssh_pass: \"${{parameters.servers_ssh_pass}}\"
+    code_path: \"~/azagent/_work/1/WebApp\"
+    "> vars
+  displayName: add vars file
+
+- script: |
+    export ANSIBLE_HOST_KEY_CHECKING=False;
+    cd ~/ansible; ansible-playbook -i inventory weightTrackerPlayBook.yaml
+  displayName: run ansible
