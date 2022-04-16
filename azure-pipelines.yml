@@ -19,7 +19,7 @@ stages:
         artifactName: 'drop'
     
     - download: current
-  artifact: drop
+      artifact: drop
    
     - publish: $(Build.ArtifactStagingDirectory)
       displayName: publish artifact
